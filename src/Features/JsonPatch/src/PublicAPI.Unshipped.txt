@@ -1,1 +1,3 @@
 #nullable enable
+Microsoft.AspNetCore.JsonPatch.Internal.ListAdapter.PositionInfo.PositionInfo() -> void
+Microsoft.AspNetCore.JsonPatch.Internal.ParsedPath.ParsedPath() -> void
