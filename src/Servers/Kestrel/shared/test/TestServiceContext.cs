@@ -22,17 +22,12 @@ namespace Microsoft.AspNetCore.Testing
             Initialize(kestrelTrace.LoggerFactory, kestrelTrace, false);
         }
 
-        public TestServiceContext(ILoggerFactory loggerFactory)
+        public TestServiceContext(ILoggerFactory loggerFactory, bool enableLineFeedTerminator = false)
         {
-            Initialize(loggerFactory, CreateLoggingTrace(loggerFactory), false);
+            Initialize(loggerFactory, CreateLoggingTrace(loggerFactory), enableLineFeedTerminator);
         }
 
-        public TestServiceContext(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace)
-        {
-            Initialize(loggerFactory, new CompositeKestrelTrace(kestrelTrace, CreateLoggingTrace(loggerFactory)), false);
-        }
-
-        public TestServiceContext(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace, bool enableLineFeedTerminator)
+        public TestServiceContext(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace, bool enableLineFeedTerminator = false)
         {
             Initialize(loggerFactory, new CompositeKestrelTrace(kestrelTrace, CreateLoggingTrace(loggerFactory)), enableLineFeedTerminator);
         }
