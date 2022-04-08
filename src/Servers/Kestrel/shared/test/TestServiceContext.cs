@@ -19,17 +19,22 @@ namespace Microsoft.AspNetCore.Testing
             var logger = new TestApplicationErrorLogger();
             var kestrelTrace = new TestKestrelTrace(logger);
 
-            Initialize(kestrelTrace.LoggerFactory, kestrelTrace);
+            Initialize(kestrelTrace.LoggerFactory, kestrelTrace, false);
         }
 
         public TestServiceContext(ILoggerFactory loggerFactory)
         {
-            Initialize(loggerFactory, CreateLoggingTrace(loggerFactory));
+            Initialize(loggerFactory, CreateLoggingTrace(loggerFactory), false);
         }
 
         public TestServiceContext(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace)
         {
-            Initialize(loggerFactory, new CompositeKestrelTrace(kestrelTrace, CreateLoggingTrace(loggerFactory)));
+            Initialize(loggerFactory, new CompositeKestrelTrace(kestrelTrace, CreateLoggingTrace(loggerFactory)), false);
+        }
+
+        public TestServiceContext(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace, bool enableLineFeedTerminator)
+        {
+            Initialize(loggerFactory, new CompositeKestrelTrace(kestrelTrace, CreateLoggingTrace(loggerFactory)), enableLineFeedTerminator);
         }
 
         private static KestrelTrace CreateLoggingTrace(ILoggerFactory loggerFactory)
@@ -51,7 +56,7 @@ namespace Microsoft.AspNetCore.Testing
             SystemClock = heartbeatManager;
         }
 
-        private void Initialize(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace)
+        private void Initialize(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace, bool enableLineFeedTerminator)
         {
             LoggerFactory = loggerFactory;
             Log = kestrelTrace;
@@ -60,7 +65,7 @@ namespace Microsoft.AspNetCore.Testing
             SystemClock = MockSystemClock;
             DateHeaderValueManager = new DateHeaderValueManager();
             ConnectionManager = new ConnectionManager(Log, ResourceCounter.Unlimited);
-            HttpParser = new HttpParser<Http1ParsingHandler>(Log.IsEnabled(LogLevel.Information));
+            HttpParser = new HttpParser<Http1ParsingHandler>(Log.IsEnabled(LogLevel.Information), enableLineFeedTerminator);
             ServerOptions = new KestrelServerOptions
             {
                 AddServerHeader = false

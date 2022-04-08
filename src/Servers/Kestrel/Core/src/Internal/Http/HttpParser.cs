@@ -15,16 +15,20 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
     public class HttpParser<TRequestHandler> : IHttpParser<TRequestHandler> where TRequestHandler : IHttpHeadersHandler, IHttpRequestLineHandler
     {
         private readonly bool _showErrorDetails;
-        private readonly bool _singleLineFeedEol;
+        private readonly bool _enableLineFeedTerminator;
 
-        public HttpParser() : this(showErrorDetails: true)
+        public HttpParser() : this(showErrorDetails: true, enableLineFeedTerminator: true)
         {
         }
 
-        public HttpParser(bool showErrorDetails)
+        public HttpParser(bool showErrorDetails) : this(showErrorDetails, enableLineFeedTerminator: false)
+        {
+        }
+
+        internal HttpParser(bool showErrorDetails, bool enableLineFeedTerminator)
         {
             _showErrorDetails = showErrorDetails;
-            _singleLineFeedEol = AppContext.TryGetSwitch("Microsoft.AspNetCore.Server.Kestrel.AcceptLineFeedAsLineTerminator", out var enabled) && enabled;
+            _enableLineFeedTerminator = enableLineFeedTerminator;
         }
 
         // byte types don't have a data type annotation so we pre-cast them; to avoid in-place casts
@@ -117,7 +121,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             // Consume space
             offset++;
 
-            if (!_singleLineFeedEol)
+            if (!_enableLineFeedTerminator)
             {
                 // Version + CR is 9 bytes which should take us to .Length
                 // LF should have been dropped prior to method call
@@ -232,7 +236,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                             // Correctly has a CR, move to next
                             length++;
 
-                            if (!_singleLineFeedEol || expectedCR == ByteCR)
+                            if (!_enableLineFeedTerminator || expectedCR == ByteCR)
                             {
                                 if (expectedCR != ByteCR)
                                 {
@@ -357,7 +361,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                 headerSpan = currentSlice.Slice(reader.Position, lineEnd).ToSpan();
                 if (headerSpan[^1] != ByteCR)
                 {
-                    if (!_singleLineFeedEol || headerSpan[^1] != ByteLF)
+                    if (!_enableLineFeedTerminator || headerSpan[^1] != ByteLF)
                     {
                         RejectRequestHeader(headerSpan);
                     }
@@ -371,7 +375,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
             if (headerSpan.Length < 5)
             {
-                if (!_singleLineFeedEol || headerSpan.Length < 4)
+                if (!_enableLineFeedTerminator || headerSpan.Length < 4)
                 {
                     // Less than min possible headerSpan is 4 bytes a:b\n or 5 bytes a:b\r\n
                     RejectRequestHeader(headerSpan);
@@ -380,7 +384,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
             if (headerSpan[^2] != ByteCR)
             {
-                if (!_singleLineFeedEol)
+                if (!_enableLineFeedTerminator)
                 {
                     // Sequence needs to be CRLF.
                     RejectRequestHeader(headerSpan[..^1]);
