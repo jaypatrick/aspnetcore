@@ -2225,4 +2225,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
             public int Value;
         }
     }
+
+    // Ensure that all common tests are still passing when the AcceptLineFeedAsLineTerminator quirk mode is enabled.
+    public class RequestTestsQuirkMode : RequestTests
+    {
+        public RequestTestsQuirkMode()
+        {
+            AppContext.SetSwitch("Microsoft.AspNetCore.Server.Kestrel.AcceptLineFeedAsLineTerminator", true);
+        }
+    }
+
 }

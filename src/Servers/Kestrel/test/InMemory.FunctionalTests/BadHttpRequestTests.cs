@@ -46,6 +46,30 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                 expectedExceptionMessage);
         }
 
+        [Theory]
+        [MemberData(nameof(InvalidRequestHeaderDataLineFeedTerminator))]
+        public async Task TestInvalidHeadersQuirkMode(string rawHeaders, string expectedExceptionMessage)
+        {
+            // These should not fail in quirk mode
+            var quirkMode = AppContext.TryGetSwitch("Microsoft.AspNetCore.Server.Kestrel.AcceptLineFeedAsLineTerminator", out var enabled) && enabled;
+
+            var task = TestBadRequest(
+                $"GET / HTTP/1.1\r\n{rawHeaders}",
+                "400 Bad Request",
+                expectedExceptionMessage);
+
+            if (quirkMode)
+            {
+                // Unit test should fail since it expects a bad request
+                await Assert.ThrowsAnyAsync<Exception>(async () => await task);
+            }
+            else
+            {
+                // Should fail successfully
+                await task;
+            }
+        }
+
         public static Dictionary<string, (string header, string errorMessage)> BadHeaderData => new Dictionary<string, (string, string)>
         {
             { "Hea\0der: value".EscapeNonPrintable(), ("Hea\0der: value", "Invalid characters in header name.") },
@@ -309,6 +333,17 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
 
         public static IEnumerable<object[]> InvalidRequestHeaderData => HttpParsingData.RequestHeaderInvalidData;
 
+        public static IEnumerable<object[]> InvalidRequestHeaderDataLineFeedTerminator => HttpParsingData.RequestHeaderInvalidDataLineFeedTerminator;
+
         public static TheoryData<string, string> InvalidHostHeaderData => HttpParsingData.HostHeaderInvalidData;
+    }
+
+    // Ensure that all common tests are still passing when the AcceptLineFeedAsLineTerminator quirk mode is enabled.
+    public class BadHttpRequestTestsQuirksMode : BadHttpRequestTests
+    {
+        public BadHttpRequestTestsQuirksMode()
+        {
+            AppContext.SetSwitch("Microsoft.AspNetCore.Server.Kestrel.AcceptLineFeedAsLineTerminator", true);
+        }
     }
 }
